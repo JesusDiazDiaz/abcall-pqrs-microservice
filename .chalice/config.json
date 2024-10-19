@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "app_name": "abcall-pqrs-microservice",
+  "environment_variables": {
+    "DATABASE_URL": "postgresql://bunny:password123@abcall-pqrs-service-database.cxsvh4nwbuit.us-east-1.rds.amazonaws.com:5432/postgres"
+  },
+  "stages": {
+   "prod": {
+     "autogen_policy": false,
+     "iam_policy_file": "my-policy.json"
+    }
+  }
+}

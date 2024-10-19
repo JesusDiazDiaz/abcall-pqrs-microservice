@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Despliegue de una instancia Aurora Serverless para PostgreSQL en la VPC por defecto de AWS
+
+Parameters:
+  DBClusterIdentifier:
+    Description: Identificador único para el clúster Aurora
+    Type: String
+    Default: pqrs-cluster
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*$'
+    ConstraintDescription: El identificador debe empezar con una letra y solo puede contener letras, números y guiones.
+
+  DBName:
+    Description: Nombre de la base de datos a crear
+    Type: String
+    Default: postgres
+
+  DBUsername:
+    Description: Usuario administrador de la base de datos
+    Type: String
+    Default: admin
+    NoEcho: true
+
+  DBPassword:
+    Description: Contraseña del usuario administrador
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    MaxLength: 41
+    ConstraintDescription: Contraseña de la base de datos Aurora Serverless (mínimo 8 caracteres)
+
+Resources:
+  # Obtener la VPC por defecto
+  DefaultVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: Default VPC
+    DeletionPolicy: Retain
+
+  # Obtener las subnets por defecto dentro de la VPC por defecto
+  DefaultSubnets:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DefaultVPC
+
+  # Definir el grupo de seguridad para Aurora Serverless (Puerto 5432 para PostgreSQL)
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permitir acceso a PostgreSQL Aurora Serverless
+      VpcId: !Ref DefaultVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0  # Ajusta según tus necesidades de seguridad
+
+  # Definir el clúster Aurora Serverless
+  MyAuroraCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      EngineMode: serverless
+      DBClusterIdentifier: !Ref DBClusterIdentifier
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DatabaseName: !Ref DBName
+      VpcSecurityGroupIds:
+        - !Ref RDSSecurityGroup
+      DBSubnetGroupName: !Ref AuroraSubnetGroup
+      BackupRetentionPeriod: 7
+      ScalingConfiguration:
+        AutoPause: true  # Pausar automáticamente cuando no haya actividad
+        MinCapacity: 2    # Mínima capacidad de la instancia (en ACUs)
+        MaxCapacity: 8    # Máxima capacidad de la instancia (en ACUs)
+      EnableHttpEndpoint: true  # Permitir invocación con Data API (opcional)
+      PreferredBackupWindow: 07:00-09:00
+      PreferredMaintenanceWindow: sun:10:00-sun:12:00
+
+  # Definir el grupo de subnets de la VPC por defecto
+  AuroraSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets para Aurora Serverless
+      SubnetIds:
+        Fn::If:
+          - HasSubnets
+          - !Ref DefaultSubnets
+
+Outputs:
+  DBClusterEndpoint:
+    Description: El endpoint para conectarse al clúster Aurora Serverless PostgreSQL
+    Value: !GetAtt MyAuroraCluster.Endpoint.Address
+    Export:
+      Name: DBClusterEndpoint
+
+  DBClusterPort:
+    Description: El puerto donde está disponible la base de datos
+    Value: !GetAtt MyAuroraCluster.Endpoint.Port
+    Export:
+      Name: DBClusterPort

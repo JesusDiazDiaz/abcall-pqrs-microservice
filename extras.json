@@ -1,0 +1,64 @@
+{
+  "Resources": {
+    "PostgresDBInstance": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceIdentifier": "abcall-pqrs-service-database",
+        "DBInstanceClass": "db.t3.micro",
+        "Engine": "postgres",
+        "MasterUsername": "bunny",
+        "MasterUserPassword": "password123",
+        "DBName": "postgres",
+        "AllocatedStorage": 20,
+        "StorageType": "gp2",
+        "BackupRetentionPeriod": 7,
+        "MultiAZ": false,
+        "PubliclyAccessible": true,
+        "VPCSecurityGroups": [
+          {
+            "Ref": "SecurityGroup"
+          }
+        ],
+        "DBSubnetGroupName": {
+          "Ref": "DBSubnetGroup"
+        }
+      }
+    },
+    "SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "PostgreSQL RDS security group",
+        "VpcId": "vpc-a29a48d8",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 5432,
+            "ToPort": 5432,
+            "CidrIp": "0.0.0.0/0"
+          }
+        ]
+      }
+    },
+    "DBSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnet group for RDS PostgreSQL",
+        "SubnetIds": [
+          "subnet-2cf5734b",
+          "subnet-f312d8cd"
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "DBInstanceEndpoint": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PostgresDBInstance",
+          "Endpoint.Address"
+        ]
+      },
+      "Description": "Endpoint for the RDS PostgreSQL instance"
+    }
+  }
+}
