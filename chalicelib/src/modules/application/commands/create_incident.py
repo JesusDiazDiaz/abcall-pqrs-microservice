@@ -31,7 +31,7 @@ class UpdateInformationHandler(CommandBaseHandler):
             "date": command.date.timestamp(),
             "user_sub": command.user_sub
         }
-        dispatcher.send(signal='CreateIncidentIntegration', event=json.dumps(event))
+        dispatcher.send(signal='CreateIncidentIntegration', event=event)
 
 
 @execute_command.register(CreateIncidentCommand)

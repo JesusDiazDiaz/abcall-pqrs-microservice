@@ -1,3 +1,4 @@
+import json
 import logging
 
 import boto3
@@ -14,7 +15,7 @@ class Dispatcher:
         LOGGER.info("publish message to sns")
         sns.publish(
             TopicArn=SNS_TOPIC_ARN,
-            Message=str(message),
+            Message=str(json.dumps(message)),
             Subject='New PQRS Incident'
         )
 
