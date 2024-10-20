@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MainApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: CentralApiGateway
+      Description: "API Gateway proxy that routes to abcall"
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  ClientsProxy:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt MainApiGateway.RootResourceId
+      PathPart: "clients"  # Esto define el path /clients
+      RestApiId: !Ref MainApiGateway
+
+  ClientsProxySubpath:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref ClientsProxy
+      PathPart: "{proxy+}"  # Este es el proxy dinámico para subpaths como /clients/{anything}
+      RestApiId: !Ref MainApiGateway
+
+  PqrsProxy:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt MainApiGateway.RootResourceId
+      PathPart: "pqrs"  # Esto define el path /pqrs
+      RestApiId: !Ref MainApiGateway
+
+  PqrsProxySubpath:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref PqrsProxy
+      PathPart: "{proxy+}"  # Este es el proxy dinámico para subpaths como /pqrs/{anything}
+      RestApiId: !Ref MainApiGateway
+
+  UsersProxy:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt MainApiGateway.RootResourceId
+      PathPart: "users"  # Esto define el path /users
+      RestApiId: !Ref MainApiGateway
+
+  UsersProxySubpath:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !Ref UsersProxy
+      PathPart: "{proxy+}"  # Este es el proxy dinámico para subpaths como /users/{anything}
+      RestApiId: !Ref MainApiGateway
+
+  # Definir los métodos proxy para cada recurso
+  ClientsProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      ResourceId: !Ref ClientsProxySubpath  # Se aplica al recurso con proxy
+      RestApiId: !Ref MainApiGateway
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: ANY
+        Uri: "https://l36oyb6gwa.execute-api.us-east-1.amazonaws.com/api/"  # Redirigir dinámicamente al API de /clients
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          "integration.request.path.proxy": "method.request.path.proxy"  # Corrección: Este mapeo asegura que el path dinámico se pase correctamente
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+      RequestParameters:
+        "method.request.header.Authorization": true
+
+  PqrsProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      ResourceId: !Ref PqrsProxySubpath  # Se aplica al recurso con proxy
+      RestApiId: !Ref MainApiGateway
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: ANY
+        Uri: "https://yxdz3rfzj3.execute-api.us-east-1.amazonaws.com/api/"  # Redirigir dinámicamente al API de /pqrs
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          "integration.request.path.proxy": "method.request.path.proxy"  # Corrección: Mapeo correcto del proxy
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+      RequestParameters:
+        "method.request.header.Authorization": true
+
+  UsersProxyMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: ANY
+      ResourceId: !Ref UsersProxySubpath  # Se aplica al recurso con proxy
+      RestApiId: !Ref MainApiGateway
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: ANY
+        Uri: "https://1acgpw2vfg.execute-api.us-east-1.amazonaws.com/api/"  # Redirigir dinámicamente al API de /users
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestParameters:
+          "integration.request.path.proxy": "method.request.path.proxy"  # Corrección: Mapeo correcto del proxy
+        IntegrationResponses:
+          - StatusCode: 200
+      MethodResponses:
+        - StatusCode: 200
+      RequestParameters:
+        "method.request.header.Authorization": true
+
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CognitoAuthorizer
+      RestApiId: !Ref MainApiGateway
+      Type: COGNITO_USER_POOLSCognitoAuthorizer
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - arn:aws:cognito-idp:us-east-1:044162189377:userpool/us-east-1_YDIpg1HiU
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${MainApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/"

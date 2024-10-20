@@ -1,7 +1,13 @@
+
+# Get token for testing
 ```bash
 aws cognito-idp admin-initiate-auth --user-pool-id us-east-1_YDIpg1HiU --client-id 65sbvtotc1hssqecgusj1p3f9g --auth-flow ADMIN_NO_SRP_AUTH --auth-parameters USERNAME=robert@mail.com,PASSWORD=Test@123 --query 'AuthenticationResult.IdToken' --output text
 ```
 
+```bash
+chalice generate-pipeline --pipeline-version v2 --source github --buildspec-file buildspec.yml pipeline.json
+aws cloudformation deploy --template-file pipeline.json --stack-name users-service-pipeline-stack --parameter-overrides GithubOwner=JesusDiazDiaz GithubRepoName=abcall-users-microservice --capabilities CAPABILITY_IAM
+```
 
 ```bash
 chalice package --merge-template extras.json out
