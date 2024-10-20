@@ -29,15 +29,15 @@ class Incidence(Base):
     __tablename__ = 'incidences'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_id = Column(String, nullable=False)
+    client_id = Column(Integer, nullable=False)
     subject = Column(String, nullable=False)
     description = Column(String, nullable=False)
     status = Column(Enum(Status), nullable=False)
     date = Column(Date, nullable=False)
     estimated_close_date = Column(Date, nullable=True)
-    user_id = Column(String, nullable=False)
+    user_sub = Column(String, nullable=False)
     type = Column(Enum(IncidentType), nullable=False)
-    type_communication = Column(Enum(CommunicationType), nullable=False)
+    communication_type = Column(Enum(CommunicationType), nullable=False)
 
 
 class IncidenceSchema(SQLAlchemyAutoSchema):
