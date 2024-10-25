@@ -28,6 +28,8 @@ def incidences():
     user_id = user_claims.get('sub')
     email = user_claims.get('email')
 
+    LOGGER.info(f"test cd")
+
     user_role = user_claims.get('custom:custom:userRole', None)
     LOGGER.info(f"User {email} get incidences, userId: {user_id} with role `{user_role}`")
 
