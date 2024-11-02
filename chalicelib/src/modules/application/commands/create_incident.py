@@ -18,9 +18,17 @@ class CreateIncidentCommand(Command):
     description: str
     date: datetime
     user_sub: str
+    ticket_number: str
+
+    @staticmethod
+    def generate_ticket_number():
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        return f"INC-{timestamp}"
 
 
 class UpdateInformationHandler(CommandBaseHandler):
+
+
     def handle(self, command: CreateIncidentCommand):
         LOGGER.info("Handle createIncidentCommand")
 
@@ -29,7 +37,8 @@ class UpdateInformationHandler(CommandBaseHandler):
             "title": command.title,
             "description": command.description,
             "date": command.date.timestamp(),
-            "user_sub": command.user_sub
+            "user_sub": command.user_sub,
+            "ticket_number": command.ticket_number
         }
         dispatcher.send(signal='CreateIncidentIntegration', event=event)
 
