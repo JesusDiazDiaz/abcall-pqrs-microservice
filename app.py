@@ -21,6 +21,14 @@ authorizer = CognitoUserPoolAuthorizer(
     provider_arns=['arn:aws:cognito-idp:us-east-1:044162189377:userpool/us-east-1_YDIpg1HiU']
 )
 
+@app.route('/pqrs/assigned', cors=True, authorizer=authorizer)
+def incidences_assigned():
+    user_claims = app.current_request.context['authorizer']['claims']
+    user_sub = user_claims.get('sub')
+
+    query_result = execute_query(GetIncidentsQuery(filters={"user_sub": user_sub}))
+    return query_result.result
+
 
 @app.route('/pqrs', cors=True, authorizer=authorizer)
 def incidences():
@@ -57,17 +65,20 @@ def incidence_post():
 
     LOGGER.info(f"User {email} create incidence, userId: {user_sub}")
 
+    ticket_number = CreateIncidentCommand.generate_ticket_number()
+
     command = CreateIncidentCommand(
         title=incidence_as_json["title"],
         type=incidence_as_json["type"],
         description=incidence_as_json["description"],
         date=datetime.now(),
-        user_sub=user_sub
+        user_sub=user_sub,
+        ticket_number=ticket_number
     )
 
     execute_command(command)
 
-    return {'status': "ok"}
+    return {'status': "ok", "ticket_number": ticket_number}
 
 
 @app.route('/migrate', methods=['POST'])

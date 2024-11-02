@@ -38,6 +38,7 @@ class Incidence(Base):
     user_sub = Column(String, nullable=False)
     type = Column(Enum(IncidentType), nullable=False)
     communication_type = Column(Enum(CommunicationType), nullable=False)
+    ticket_number = Column(String, nullable=True)
 
 
 class IncidenceSchema(SQLAlchemyAutoSchema):

@@ -31,11 +31,16 @@ class IncidenceRepositoryPostgres(IncidenceRepository):
     def remove(self, entity):
         raise NotImplementedError
 
-    def get_all(self):
+    def get_all(self, filters=None):
         incident_schema = IncidenceSchema(many=True)
 
         try:
-            result = self.db_session.query(Incidence).all()
+            query = self.db_session.query(Incidence)
+
+            if filters:
+                query = query.filter_by(**filters)
+
+            result = query.all()
         finally:
             self._close_session()
 
