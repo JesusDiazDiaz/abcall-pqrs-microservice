@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 
-from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer
+from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer, NotFoundError
 from chalicelib.src.modules.application.commands.create_incident import CreateIncidentCommand
 from chalicelib.src.modules.infrastructure.dto import Base, IncidentType
 from chalicelib.src.seedwork.application.commands import execute_command
@@ -27,6 +27,19 @@ def incidences_assigned():
     user_sub = user_claims.get('sub')
 
     query_result = execute_query(GetIncidentsQuery(filters={"user_sub": user_sub}))
+    return query_result.result
+
+
+@app.route('/pqrs/assigned/{ticket_number}', cors=True, authorizer=authorizer)
+def get_incidence_by_ticket_number(ticket_number):
+    user_claims = app.current_request.context['authorizer']['claims']
+    user_sub = user_claims.get('sub')
+
+    query_result = execute_query(GetIncidentsQuery(filters={"ticket_number": ticket_number, "user_sub": user_sub}))
+
+    if not query_result.result:
+        raise NotFoundError(f"Incidence with ticket_number {ticket_number} not found")
+
     return query_result.result
 
 
