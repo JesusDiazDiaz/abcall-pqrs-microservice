@@ -93,7 +93,8 @@ def test_incidence_post():
                     "type": request_body["type"],
                     "description": request_body["description"],
                     "date": mock.ANY,
-                    "user_sub": "user123"
+                    "user_sub": "user123",
+                    "ticket_number": mock.ANY
                 }
 
                 mock_publish_command.assert_called_with(expected_message)

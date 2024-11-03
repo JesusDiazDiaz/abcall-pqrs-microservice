@@ -1,0 +1,3 @@
+[run]
+omit =
+    chalicelib/src/seedwork/*
