@@ -83,7 +83,7 @@ def incidence_post():
         raise BadRequestError(f"Invalid 'type' value. Must be one of {valid_types}")
 
     user_claims = app.current_request.context['authorizer']['claims']
-    user_sub = user_claims.get('sub')
+    user_sub = incidence_as_json.get('user_sub', user_claims.get('sub'))
     email = user_claims.get('email')
 
     LOGGER.info(f"User {email} create incidence, userId: {user_sub}")
