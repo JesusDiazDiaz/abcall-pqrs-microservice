@@ -18,7 +18,7 @@ aws cloudformation package \
      --output-template-file out/packaged-app/packaged.yaml
 
 aws cloudformation deploy \
-    --template-file out/packaged-app/packaged.yaml \
+    --template-file out/packaged-app/packaged.yam[dto.py](chalicelib/src/modules/infrastructure/dto.py)l \
     --stack-name pqrs-service-stack \
     --capabilities CAPABILITY_IAM
 
