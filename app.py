@@ -43,6 +43,16 @@ def get_incidence_by_ticket_number(ticket_number):
     return query_result.result
 
 
+@app.route('/pqrs/{incidence_id}', cors=True)
+def get_incidence_by_id(incidence_id):
+    query_result = execute_query(GetIncidentsQuery(filters={"id": incidence_id}))
+
+    if not query_result.result:
+        raise NotFoundError(f"Incidence with incidence_id {incidence_id} not found")
+
+    return query_result.result
+
+
 @app.route('/pqrs', cors=True, authorizer=authorizer)
 def incidences():
     user_claims = app.current_request.context['authorizer']['claims']

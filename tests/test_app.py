@@ -4,6 +4,7 @@ from unittest import mock
 from unittest.mock import patch, MagicMock
 
 from chalice.test import Client
+from chalice import NotFoundError
 from app import app
 
 
@@ -98,3 +99,63 @@ def test_incidence_post():
                 }
 
                 mock_publish_command.assert_called_with(expected_message)
+
+def test_get_incidence_by_id_found():
+    # Mock the context and data for the endpoint
+    mock_incidence_id = "1"
+    mock_incidence = [
+        {
+            "id": 1,
+            "client_id": 2,
+            "subject": "Incident 1",
+            "description": "test",
+            "status": "ABIERTO",
+            "date": "2024-10-20",
+            "estimated_close_date": "2024-10-28",
+            "user_sub": "72c16f9f-5f13-439b-bf09-7440edd16086",
+            "type": "PETICION",
+            "communication_type": "SMS"
+        }
+    ]
+
+    # Mock request object
+    mock_request = MagicMock()
+    mock_request.headers = {
+        'Content-Type': 'application/json'
+    }
+
+    # Patch the Request object and the execute_query function
+    with patch('chalice.app.Request', return_value=mock_request):
+        with patch('chalicelib.src.modules.infrastructure.repository.IncidenceRepositoryPostgres.get_all', return_value=mock_incidence):
+            # Create a test client for the app
+            with Client(app) as client:
+                response = client.http.get(f'/pqrs/{mock_incidence_id}')
+
+                # Check that the response status code is 200
+                assert response.status_code == 200
+
+                # Parse the response data
+                response_data = json.loads(response.body)
+                assert response_data == mock_incidence
+
+
+def test_get_incidence_by_id_not_found():
+    # Mock the context and data for the endpoint
+    mock_incidence_id = "999"  # Use an ID that will simulate a not found case
+
+    # Mock request object
+    mock_request = MagicMock()
+    mock_request.headers = {
+        'Content-Type': 'application/json'
+    }
+
+    # Patch the Request object and the execute_query function
+    with patch('chalice.app.Request', return_value=mock_request):
+        with patch('chalicelib.src.modules.infrastructure.repository.IncidenceRepositoryPostgres.get_all', return_value=[]):
+
+            # Create a test client for the app
+            with Client(app) as client:
+                try:
+                    client.http.get(f'/pqrs/{mock_incidence_id}')
+                except NotFoundError as e:
+                    assert str(e) == f"Incidence with incidence_id {mock_incidence_id} not found"
