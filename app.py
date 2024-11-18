@@ -64,7 +64,11 @@ def incidences():
     user_role = user_claims.get('custom:custom:userRole', None)
     LOGGER.info(f"User {email} get incidences, userId: {user_id} with role `{user_role}`")
 
-    query_result = execute_query(GetIncidentsQuery())
+    if app.current_request.query_params is not None:
+        query_result = execute_query(GetIncidentsQuery(filters={**app.current_request.query_params}))
+    else:
+        query_result = execute_query(GetIncidentsQuery())
+
     return query_result.result
 
 
