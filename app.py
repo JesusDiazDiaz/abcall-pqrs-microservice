@@ -57,6 +57,8 @@ def incidences_stats():
         month: mean(times) for month, times in resolution_times.items() if times
     }
 
+    channel_counts = Counter(incidence["channel"] for incidence in query_result if incidence["channel"])
+
     stats = {
         "total_resolved": status_counts["CERRADO"],
         "total_pending": status_counts["ABIERTO"],
@@ -64,6 +66,7 @@ def incidences_stats():
         "average_resolution_time_per_month": average_resolution_times,
         "closed_incidences_per_month": closed_per_month,
         "distribution": percentage_distribution,
+        "incidences_per_channel": channel_counts,
     }
 
     return stats
