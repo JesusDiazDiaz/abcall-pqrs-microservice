@@ -26,7 +26,7 @@ authorizer = CognitoUserPoolAuthorizer(
 )
 
 
-@app.route('/pqrs/stats', cors=True, authorizer=authorizer, timeout_seconds=300)
+@app.route('/pqrs/stats', cors=True, authorizer=authorizer)
 def incidences_stats():
     query_result = execute_query(GetIncidentsQuery()).result
 
