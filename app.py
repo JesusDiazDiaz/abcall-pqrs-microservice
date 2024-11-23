@@ -1,10 +1,14 @@
 import json
 import logging
+from collections import defaultdict
 from datetime import datetime
+from statistics import mean
 
 from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer, NotFoundError
 from chalicelib.src.modules.application.commands.create_incident import CreateIncidentCommand
+from chalicelib.src.modules.application.commands.update_incident import UpdateIncidenceCommand
 from chalicelib.src.modules.infrastructure.dto import Base, IncidentType
+from chalicelib.src.modules.infrastructure.facades import MicroservicesFacade
 from chalicelib.src.seedwork.application.commands import execute_command
 from chalicelib.src.config.db import init_db, engine
 from chalicelib.src.seedwork.application.queries import execute_query
@@ -20,6 +24,72 @@ authorizer = CognitoUserPoolAuthorizer(
     'AbcPool',
     provider_arns=['arn:aws:cognito-idp:us-east-1:044162189377:userpool/us-east-1_YDIpg1HiU']
 )
+
+
+@app.route('/pqrs/stats', cors=True, authorizer=authorizer)
+def incidences_stats():
+    query_result = execute_query(GetIncidentsQuery()).result
+
+    status_counts = defaultdict(int)
+    closed_per_month = defaultdict(int)
+    resolution_times = defaultdict(list)
+
+    for incidence in query_result:
+        status_counts[incidence["status"]] += 1
+
+        if incidence["status"] == "CERRADO":
+            close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
+            closed_per_month[close_date.strftime("%Y-%m")] += 1
+
+            start_date = datetime.strptime(incidence["date"], "%Y-%m-%d")
+            resolution_times[close_date.strftime("%Y-%m")].append((close_date - start_date).days)
+
+    total_incidences = len(query_result)
+    percentage_distribution = {
+        "ABIERTO": (status_counts["ABIERTO"] / total_incidences) * 100 if total_incidences > 0 else 0,
+        "CERRADO": (status_counts["CERRADO"] / total_incidences) * 100 if total_incidences > 0 else 0,
+        "ESCALADO": (status_counts["ESCALADO"] / total_incidences) * 100 if total_incidences > 0 else 0,
+    }
+
+    average_resolution_times = {
+        month: mean(days) for month, days in resolution_times.items() if days
+    }
+
+    stats = {
+        "total_resolved": status_counts["CERRADO"],
+        "total_pending": status_counts["ABIERTO"],
+        "total_escalated": status_counts["ESCALADO"],
+        "average_resolution_time_per_month": average_resolution_times,
+        "closed_incidences_per_month": closed_per_month,
+        "distribution": percentage_distribution,
+    }
+
+    return stats
+
+@app.route('/pqrs/{incidence_id}/assign', methods=['POST'], cors=True, authorizer=authorizer)
+def incidences_assigned(incidence_id):
+    user_claims = app.current_request.context['authorizer']['claims']
+    user_sub = user_claims.get('sub')
+
+    facade = MicroservicesFacade()
+    current_user = facade.get_user(user_sub)
+
+    LOGGER.info("User with role %s assign pqr", current_user["user_role"] )
+
+    if current_user["user_role"] != "Agent":
+        raise BadRequestError("User authenticated it's not a agent")
+
+    command = UpdateIncidenceCommand(
+        incidence_id=incidence_id,
+        data={
+            "agent_assigned": current_user["id"],
+        }
+    )
+
+    execute_command(command)
+
+    return {'status': "ok"}
+
 
 @app.route('/pqrs/assigned', cors=True, authorizer=authorizer)
 def incidences_assigned():

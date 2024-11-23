@@ -23,6 +23,14 @@ class CommunicationType(enum.Enum):
 class Status(enum.Enum):
     ABIERTO = "Abierto"
     CERRADO = "Cerrado"
+    ESCALADO = "Escalado"
+
+
+class Channel(enum.Enum):
+    WEB = "Web"
+    APP = "App"
+    TELEFONO = "Telefono"
+    CHAT = "Chat"
 
 
 class Incidence(Base):
@@ -39,6 +47,9 @@ class Incidence(Base):
     type = Column(Enum(IncidentType), nullable=False)
     communication_type = Column(Enum(CommunicationType), nullable=False)
     ticket_number = Column(String, nullable=True)
+
+    agent_assigned = Column(Integer, nullable=True)
+    channel = Column(Enum(Channel), nullable=True)
 
 
 class IncidenceSchema(SQLAlchemyAutoSchema):

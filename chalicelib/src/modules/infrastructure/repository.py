@@ -48,3 +48,25 @@ class IncidenceRepositoryPostgres(IncidenceRepository):
 
     def update(self, id, data) -> None:
         raise NotImplementedError
+
+    def update(self, id, data) -> None:
+        try:
+            incidence = self.db_session.query(Incidence).filter_by(id=id).first()
+
+            if not incidence:
+                raise ValueError(f"Incidence with ID {id} not found.")
+
+            for key, value in data.items():
+                if hasattr(incidence, key):
+                    setattr(incidence, key, value)
+                else:
+                    LOGGER.warning(f"Field {key} does not exist in Incidence model and was ignored.")
+
+            self.db_session.commit()
+            LOGGER.info(f"Incidence with ID {id} updated successfully.")
+        except Exception as e:
+            self.db_session.rollback()
+            LOGGER.error(f"Error updating incidence with ID {id}: {str(e)}")
+            raise e
+        finally:
+            self._close_session()
