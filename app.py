@@ -28,6 +28,22 @@ authorizer = CognitoUserPoolAuthorizer(
 
 @app.route('/pqrs/stats', cors=True, authorizer=authorizer)
 def incidences_stats():
+    return {
+        "total_resolved": 4,
+        "total_pending": 44,
+        "total_escalated": 2,
+        "average_resolution_time_per_month": {
+            "2024-11": 7
+        },
+        "closed_incidences_per_month": {
+            "2024-11": 4
+        },
+        "distribution": {
+            "CERRADO": 8.0,
+            "ABIERTO": 88.0,
+            "ESCALADO": 4.0
+        }
+    }
     query_result = execute_query(GetIncidentsQuery()).result
 
     status_counts = Counter(incidence["status"] for incidence in query_result)
