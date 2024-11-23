@@ -19,6 +19,7 @@ class CreateIncidentCommand(Command):
     date: datetime
     user_sub: str
     ticket_number: str
+    channel: str
 
     @staticmethod
     def generate_ticket_number():
@@ -38,7 +39,8 @@ class UpdateInformationHandler(CommandBaseHandler):
             "description": command.description,
             "date": command.date.timestamp(),
             "user_sub": command.user_sub,
-            "ticket_number": command.ticket_number
+            "ticket_number": command.ticket_number,
+            "channel": command.channel
         }
         dispatcher.send(signal='CreateIncidentIntegration', event=event)
 

@@ -183,7 +183,7 @@ def incidence_post():
     incidence_as_json = app.current_request.json_body
 
     LOGGER.info("Receive create incident request")
-    required_fields = ["title", "type", "description"]
+    required_fields = ["title", "type", "description", "channel"]
     for field in required_fields:
         if field not in incidence_as_json:
             raise BadRequestError(f"Missing required field: {field}")
@@ -206,7 +206,8 @@ def incidence_post():
         description=incidence_as_json["description"],
         date=datetime.now(),
         user_sub=user_sub,
-        ticket_number=ticket_number
+        ticket_number=ticket_number,
+        channel=incidence_as_json["channel"],
     )
 
     execute_command(command)
