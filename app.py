@@ -1,6 +1,6 @@
 import json
 import logging
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime
 from statistics import mean
 
@@ -30,29 +30,31 @@ authorizer = CognitoUserPoolAuthorizer(
 def incidences_stats():
     query_result = execute_query(GetIncidentsQuery()).result
 
-    status_counts = defaultdict(int)
+    status_counts = Counter(incidence["status"] for incidence in query_result)
+    total_incidences = len(query_result)
+
+    percentage_distribution = {
+        key: (value / total_incidences) * 100 if total_incidences > 0 else 0
+        for key, value in status_counts.items()
+    }
+
+    closed_data = [
+        incidence for incidence in query_result if incidence["status"] == "CERRADO"
+    ]
+
     closed_per_month = defaultdict(int)
     resolution_times = defaultdict(list)
 
-    for incidence in query_result:
-        status_counts[incidence["status"]] += 1
+    for incidence in closed_data:
+        close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
+        start_date = datetime.strptime(incidence["date"], "%Y-%m-%d")
 
-        if incidence["status"] == "CERRADO":
-            close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
-            closed_per_month[close_date.strftime("%Y-%m")] += 1
-
-            start_date = datetime.strptime(incidence["date"], "%Y-%m-%d")
-            resolution_times[close_date.strftime("%Y-%m")].append((close_date - start_date).days)
-
-    total_incidences = len(query_result)
-    percentage_distribution = {
-        "ABIERTO": (status_counts["ABIERTO"] / total_incidences) * 100 if total_incidences > 0 else 0,
-        "CERRADO": (status_counts["CERRADO"] / total_incidences) * 100 if total_incidences > 0 else 0,
-        "ESCALADO": (status_counts["ESCALADO"] / total_incidences) * 100 if total_incidences > 0 else 0,
-    }
+        month_key = close_date.strftime("%Y-%m")
+        closed_per_month[month_key] += 1
+        resolution_times[month_key].append((close_date - start_date).days)
 
     average_resolution_times = {
-        month: mean(days) for month, days in resolution_times.items() if days
+        month: mean(times) for month, times in resolution_times.items() if times
     }
 
     stats = {
