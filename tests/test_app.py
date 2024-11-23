@@ -159,3 +159,111 @@ def test_get_incidence_by_id_not_found():
                     client.http.get(f'/pqrs/{mock_incidence_id}')
                 except NotFoundError as e:
                     assert str(e) == f"Incidence with incidence_id {mock_incidence_id} not found"
+
+
+def test_get_incidences_stats():
+    mock_context = {
+        'authorizer': {
+            'claims': {
+                'sub': 'user123',
+                'email': 'user@example.com',
+                'custom:custom:userRole': 'admin'
+            }
+        }
+    }
+
+    mock_incidents = [
+        {
+            "status": "CERRADO",
+            "estimated_close_date": "2024-11-20",
+            "date": "2024-11-15"
+        },
+        {
+            "status": "CERRADO",
+            "estimated_close_date": "2024-11-22",
+            "date": "2024-11-18"
+        },
+        {
+            "status": "ABIERTO",
+            "estimated_close_date": None,
+            "date": "2024-11-19"
+        },
+        {
+            "status": "ESCALADO",
+            "estimated_close_date": None,
+            "date": "2024-11-20"
+        }
+    ]
+
+    expected_response = {
+        "total_resolved": 2,
+        "total_pending": 1,
+        "total_escalated": 1,
+        "average_resolution_time_per_month": {
+            "2024-11": 4.5
+        },
+        "closed_incidences_per_month": {
+            "2024-11": 2
+        },
+        "distribution": {
+            "CERRADO": 50.0,
+            "ABIERTO": 25.0,
+            "ESCALADO": 25.0
+        }
+    }
+
+    mock_request = MagicMock()
+    mock_request.context = mock_context
+    mock_request.headers = {
+        'Content-Type': 'application/json'
+    }
+
+    with patch('chalice.app.Request', return_value=mock_request):
+        with patch('chalicelib.src.modules.infrastructure.repository.IncidenceRepositoryPostgres.get_all', return_value=mock_incidents):
+            with Client(app) as client:
+                response = client.http.get('/pqrs/stats')
+
+                assert response.status_code == 200
+
+                response_data = json.loads(response.body)
+                assert response_data == expected_response
+
+
+def test_incidence_assign():
+    with Client(app) as client:
+        mock_context = {
+            'authorizer': {
+                'claims': {
+                    'sub': 'agent123',
+                    'email': 'agent@example.com'
+                }
+            }
+        }
+
+        mock_request = MagicMock()
+        mock_request.context = mock_context
+        mock_request.headers = {
+            'Content-Type': 'application/json'
+        }
+
+        with patch('chalice.app.Request', return_value=mock_request):
+            with patch('chalicelib.src.modules.infrastructure.facades.MicroservicesFacade.get_user') as mock_get_user:
+                with patch('chalicelib.src.modules.infrastructure.repository.IncidenceRepositoryPostgres.update'):
+                    mock_get_user.return_value = {
+                        "id": 1,
+                        "user_role": "Agent"
+                    }
+
+                    # Making the POST request
+                    response = client.http.post(
+                        '/pqrs/123/assign',
+                        headers={'Content-Type': 'application/json'}
+                    )
+
+                    # Validating the response
+                    assert response.status_code == 200
+                    response_data = json.loads(response.body)
+                    assert response_data['status'] == 'ok'
+
+                    # Validating that the correct user was fetched
+                    mock_get_user.assert_called_once_with('agent123')
