@@ -7,7 +7,7 @@ from statistics import mean
 from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer, NotFoundError
 from chalicelib.src.modules.application.commands.create_incident import CreateIncidentCommand
 from chalicelib.src.modules.application.commands.update_incident import UpdateIncidenceCommand
-from chalicelib.src.modules.infrastructure.dto import Base, IncidentType
+from chalicelib.src.modules.infrastructure.dto import Base, IncidentType, Status
 from chalicelib.src.modules.infrastructure.facades import MicroservicesFacade
 from chalicelib.src.seedwork.application.commands import execute_command
 from chalicelib.src.config.db import init_db, engine
@@ -89,6 +89,37 @@ def incidences_assigned(incidence_id):
     execute_command(command)
 
     return {'status': "ok"}
+
+
+@app.route('/pqrs/{incidence_id}', methods=['PUT'], cors=True, authorizer=authorizer)
+def update_incidence(incidence_id):
+    request = app.current_request
+    body = request.json_body
+
+    allowed_fields = {"status", "communication_type", "agent_assigned", "channel"}
+    invalid_fields = set(body.keys()) - allowed_fields
+    if invalid_fields:
+        raise BadRequestError(f"Invalid fields provided: {', '.join(invalid_fields)}")
+
+    status_types = [incidenceStatus.name for incidenceStatus in Status]
+    if body["status"] not in status_types:
+        raise BadRequestError(f"Invalid 'type' value. Must be one of {status_types}")
+
+    if body.get("status") == Status.CERRADO.name:
+        body["estimated_close_date"] = datetime.now()
+
+    command = UpdateIncidenceCommand(
+        incidence_id=int(incidence_id),
+        data=body
+    )
+
+    try:
+        execute_command(command)
+        return {"message": f"Incidence {incidence_id} updated successfully"}
+    except ValueError as ve:
+        raise BadRequestError(str(ve))
+    except Exception as e:
+        raise BadRequestError(f"Unexpected error: {str(e)}")
 
 
 @app.route('/pqrs/assigned', cors=True, authorizer=authorizer)
