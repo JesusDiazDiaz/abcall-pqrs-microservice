@@ -247,43 +247,28 @@ def download_incidences_report():
         if start_date_dt <= datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d") <= end_date_dt
     ]
 
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Incidences Report"
-
     headers = [
         "ID", "Status", "Channel", "Type", "Date",
         "Estimated Close Date", "Resolution Time (Days)"
     ]
-    sheet.append(headers)
+    data = []
 
     for incidence in filtered_incidences:
         close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
         start_date = datetime.strptime(incidence["date"], "%Y-%m-%d")
         resolution_time = (close_date - start_date).days
 
-        sheet.append([
-            incidence["id"],
-            incidence["status"],
-            incidence.get("channel", "N/A"),
-            incidence["type"],
-            incidence["date"],
-            incidence["estimated_close_date"],
-            resolution_time
-        ])
+        data.append({
+            "id": incidence["id"],
+            "status": incidence["status"],
+            "channel": incidence.get("channel", "N/A"),
+            "type": incidence["type"],
+            "date": incidence["date"],
+            "estimated_close_date": incidence["estimated_close_date"],
+            "resolution_time": resolution_time
+        })
 
-    output = BytesIO()
-    workbook.save(output)
-    output.seek(0)
-
-    return Response(
-        body=output.read(),
-        status_code=200,
-        headers={
-            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition': 'attachment; filename="incidences_report.xlsx"'
-        }
-    )
+    return {"headers": headers, "data": data}
 
 
 @app.route('/migrate', methods=['POST'])
