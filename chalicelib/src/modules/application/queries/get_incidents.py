@@ -8,7 +8,7 @@ from chalicelib.src.modules.domain.repository import IncidenceRepository
 
 @dataclass
 class GetIncidentsQuery(Query):
-    filters: Optional[dict] = None
+    filters: Optional[any] = None
 
 
 class GetIncidentsHandler(QueryBaseHandler):
