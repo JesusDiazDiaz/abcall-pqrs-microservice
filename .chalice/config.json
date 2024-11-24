@@ -8,7 +8,8 @@
    "prod": {
      "autogen_policy": false,
      "iam_policy_file": "my-policy.json",
-     "lambda_timeout": 300
-    }
+     "lambda_timeout": 300,
+     "memory_size": 2048
+   }
   }
 }

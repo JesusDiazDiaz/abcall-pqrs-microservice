@@ -57,6 +57,7 @@ def test_incidence_post():
             "title": "Network issue",
             "type": "Peticion",
             "description": "The network is down",
+            "channel": "WEB"
         }
 
         mock_context = {
@@ -95,7 +96,8 @@ def test_incidence_post():
                     "description": request_body["description"],
                     "date": mock.ANY,
                     "user_sub": "user123",
-                    "ticket_number": mock.ANY
+                    "ticket_number": mock.ANY,
+                    "channel": "WEB"
                 }
 
                 mock_publish_command.assert_called_with(expected_message)
@@ -176,22 +178,26 @@ def test_get_incidences_stats():
         {
             "status": "CERRADO",
             "estimated_close_date": "2024-11-20",
-            "date": "2024-11-15"
+            "date": "2024-11-15",
+            "channel": "WEB"
         },
         {
             "status": "CERRADO",
             "estimated_close_date": "2024-11-22",
-            "date": "2024-11-18"
+            "date": "2024-11-18",
+            "channel": "APP"
         },
         {
             "status": "ABIERTO",
             "estimated_close_date": None,
-            "date": "2024-11-19"
+            "date": "2024-11-19",
+            "channel": "WEB"
         },
         {
             "status": "ESCALADO",
             "estimated_close_date": None,
-            "date": "2024-11-20"
+            "date": "2024-11-20",
+            "channel": "WEB"
         }
     ]
 
@@ -209,6 +215,10 @@ def test_get_incidences_stats():
             "CERRADO": 50.0,
             "ABIERTO": 25.0,
             "ESCALADO": 25.0
+        },
+        "incidences_per_channel": {
+            "WEB": 3,
+            "APP": 1
         }
     }
 
