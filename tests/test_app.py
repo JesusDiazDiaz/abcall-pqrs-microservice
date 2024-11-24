@@ -219,7 +219,8 @@ def test_get_incidences_stats():
         "incidences_per_channel": {
             "WEB": 3,
             "APP": 1
-        }
+        },
+        "resolution_times": [5, 4]
     }
 
     mock_request = MagicMock()

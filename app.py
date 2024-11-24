@@ -48,6 +48,7 @@ def incidences_stats():
 
     closed_per_month = defaultdict(int)
     resolution_times = defaultdict(list)
+    resolution_time_array = []
 
     for incidence in closed_data:
         close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
@@ -55,7 +56,10 @@ def incidences_stats():
 
         month_key = close_date.strftime("%Y-%m")
         closed_per_month[month_key] += 1
-        resolution_times[month_key].append((close_date - start_date).days)
+        resolution_time = (close_date - start_date).days
+        resolution_times[month_key].append(resolution_time)
+
+        resolution_time_array.append(resolution_time)
 
     average_resolution_times = {
         month: mean(times) for month, times in resolution_times.items() if times
@@ -71,6 +75,7 @@ def incidences_stats():
         "closed_incidences_per_month": closed_per_month,
         "distribution": percentage_distribution,
         "incidences_per_channel": channel_counts,
+        "resolution_times": resolution_time_array
     }
 
     return stats
