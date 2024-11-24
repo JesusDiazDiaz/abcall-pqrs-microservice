@@ -2,12 +2,16 @@ import json
 import logging
 from collections import defaultdict, Counter
 from datetime import datetime
+from io import BytesIO
 from statistics import mean
 
-from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer, NotFoundError
+from chalice import Chalice, BadRequestError, CognitoUserPoolAuthorizer, NotFoundError, Response
+from openpyxl.workbook import Workbook
+from sqlalchemy import and_
+
 from chalicelib.src.modules.application.commands.create_incident import CreateIncidentCommand
 from chalicelib.src.modules.application.commands.update_incident import UpdateIncidenceCommand
-from chalicelib.src.modules.infrastructure.dto import Base, IncidentType, Status
+from chalicelib.src.modules.infrastructure.dto import Base, IncidentType, Status, Incidence
 from chalicelib.src.modules.infrastructure.facades import MicroservicesFacade
 from chalicelib.src.seedwork.application.commands import execute_command
 from chalicelib.src.config.db import init_db, engine
@@ -213,6 +217,68 @@ def incidence_post():
     execute_command(command)
 
     return {'status': "ok", "ticket_number": ticket_number}
+
+
+@app.route('/pqrs/stats/report', cors=True, methods=['POST'], authorizer=authorizer)
+def download_incidences_report():
+    request_data = app.current_request.json_body
+
+    start_date = request_data.get("start_date")
+    end_date = request_data.get("end_date")
+    incidence_type = request_data.get("incidence_type")
+
+    if not start_date or not end_date or not incidence_type:
+        raise BadRequestError("Missing required filters: start_date, end_date, or incidence_type")
+
+    start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+    end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+
+    incidences_result = execute_query(GetIncidentsQuery(filters={
+        "type": incidence_type
+    })).result
+
+    filtered_incidences = [
+        incidence for incidence in incidences_result
+        if start_date_dt <= datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d") <= end_date_dt
+    ]
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Incidences Report"
+
+    headers = [
+        "ID", "Status", "Channel", "Type", "Date",
+        "Estimated Close Date", "Resolution Time (Days)"
+    ]
+    sheet.append(headers)
+
+    for incidence in filtered_incidences:
+        close_date = datetime.strptime(incidence["estimated_close_date"], "%Y-%m-%d")
+        start_date = datetime.strptime(incidence["date"], "%Y-%m-%d")
+        resolution_time = (close_date - start_date).days
+
+        sheet.append([
+            incidence["id"],
+            incidence["status"],
+            incidence.get("channel", "N/A"),
+            incidence["type"],
+            incidence["date"],
+            incidence["estimated_close_date"],
+            resolution_time
+        ])
+
+    output = BytesIO()
+    workbook.save(output)
+    output.seek(0)
+
+    return Response(
+        body=output.read(),
+        status_code=200,
+        headers={
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': 'attachment; filename="incidences_report.xlsx"'
+        }
+    )
 
 
 @app.route('/migrate', methods=['POST'])
